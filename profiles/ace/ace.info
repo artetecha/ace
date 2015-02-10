@@ -27,9 +27,10 @@ dependencies[] = file
 dependencies[] = rdf
 
 ; Contrib modules.
+dependencies[] = pathauto
+dependencies[] = revisioning
 dependencies[] = views
 dependencies[] = views_ui
-dependencies[] = pathauto
 
 ; Patheon modules.
 dependencies[] = pantheon_api
