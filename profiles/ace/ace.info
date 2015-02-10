@@ -1,0 +1,38 @@
+; $Id$
+name = Pantheon
+description = Install with pre-configured integration for the Pantheon Platform
+version = VERSION
+core = 7.x
+
+; Core modules.
+dependencies[] = block
+dependencies[] = contextual
+dependencies[] = dashboard
+dependencies[] = help
+dependencies[] = image
+dependencies[] = list
+dependencies[] = menu
+dependencies[] = node
+dependencies[] = number
+dependencies[] = options
+dependencies[] = path
+dependencies[] = taxonomy
+dependencies[] = dblog
+dependencies[] = search
+dependencies[] = shortcut
+dependencies[] = toolbar
+dependencies[] = overlay
+dependencies[] = field_ui
+dependencies[] = file
+dependencies[] = rdf
+
+; Contrib modules.
+dependencies[] = views
+dependencies[] = views_ui
+dependencies[] = pathauto
+
+; Patheon modules.
+dependencies[] = pantheon_api
+dependencies[] = pantheon_login
+
+files[] = pantheon.profile
