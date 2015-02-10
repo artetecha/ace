@@ -1,6 +1,6 @@
 ; $Id$
-name = Pantheon
-description = Install with pre-configured integration for the Pantheon Platform
+name = ACE
+description = Install with pre-configured modules for ACE websites.
 version = VERSION
 core = 7.x
 
@@ -35,4 +35,4 @@ dependencies[] = pathauto
 dependencies[] = pantheon_api
 dependencies[] = pantheon_login
 
-files[] = pantheon.profile
+files[] = ace.profile
