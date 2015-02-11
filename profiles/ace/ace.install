@@ -17,11 +17,12 @@ function ace_install() {
     'theme_default' => variable_get('theme_default'),
     'admin_theme' => 'adminimal',
   );
-  theme_enable(array($theme_list['theme_default']));
+  theme_enable($theme_list);
   foreach ($theme_list as $var => $theme) {
     variable_set($var, $theme);
   }
 
+  // Use admin theme when editing nodes.
   variable_set('node_admin_theme', '1');
 
   // Rebuild the menu. This duplicates the menu_rebuild() in theme_enable().
