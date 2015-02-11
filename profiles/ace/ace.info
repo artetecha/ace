@@ -5,6 +5,7 @@ version = VERSION
 core = 7.x
 
 ; Core modules.
+dependencies[] = adminimal_admin_menu
 dependencies[] = block
 dependencies[] = comment
 dependencies[] = contextual
