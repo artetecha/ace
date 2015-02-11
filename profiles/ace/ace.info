@@ -6,6 +6,7 @@ core = 7.x
 
 ; Core modules.
 dependencies[] = block
+dependencies[] = comment
 dependencies[] = contextual
 dependencies[] = dashboard
 dependencies[] = help
