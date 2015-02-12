@@ -1,5 +1,8 @@
 <?php
 
+define('ACE_DEFAULT_THEME', 'bartik');
+define('ACE_DEFAULT_ADMIN_THEME', 'ember');
+
 /**
  * Implement hook_install().
  *
@@ -14,8 +17,8 @@ function ace_install() {
 
   // Enable default and admin themes.
   $theme_list = array(
-    'theme_default' => variable_get('theme_default'),
-    'admin_theme' => 'adminimal',
+    'theme_default' => ACE_DEFAULT_THEME,
+    'admin_theme' => ACE_DEFAULT_ADMIN_THEME,
   );
   theme_enable($theme_list);
   foreach ($theme_list as $var => $theme) {
