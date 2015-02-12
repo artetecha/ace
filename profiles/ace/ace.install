@@ -27,6 +27,8 @@ function ace_install() {
 
   // Use admin theme when editing nodes.
   variable_set('node_admin_theme', '1');
+  // And with Views UI.
+  variable_set('views_ui_custom_theme', ACE_DEFAULT_ADMIN_THEME);
 
   // Rebuild the menu. This duplicates the menu_rebuild() in theme_enable().
   // However, modules must know the current default theme in order to use
