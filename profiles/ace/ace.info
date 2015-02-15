@@ -5,7 +5,6 @@ version = VERSION
 core = 7.x
 
 ; Core modules.
-dependencies[] = adminimal_admin_menu
 dependencies[] = block
 dependencies[] = blog
 dependencies[] = comment
@@ -14,6 +13,7 @@ dependencies[] = help
 dependencies[] = image
 dependencies[] = list
 dependencies[] = menu
+dependencies[] = navbar
 dependencies[] = node
 dependencies[] = number
 dependencies[] = options
@@ -21,7 +21,6 @@ dependencies[] = path
 dependencies[] = taxonomy
 dependencies[] = dblog
 dependencies[] = search
-dependencies[] = overlay
 dependencies[] = field_ui
 dependencies[] = file
 dependencies[] = rdf
