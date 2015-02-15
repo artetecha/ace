@@ -1,7 +1,7 @@
 <?php
 
 define('ACE_DEFAULT_THEME', 'bartik');
-define('ACE_DEFAULT_ADMIN_THEME', 'ember');
+define('ACE_DEFAULT_ADMIN_THEME', 'stanley');
 
 /**
  * Implement hook_install().
