@@ -1,0 +1,26 @@
+// Header styles
+
+#navbar {
+  @media (min-width: $grid-float-breakpoint) {
+  border: none;
+  border-radius: 0;
+  height: $navbar-height;
+  border-top: 8px solid $brown-base;
+  border-bottom: 8px solid $brown-base;
+  .navbar-brand {
+    background: $logo-mobile;
+    width: 80px;
+    height: 70px;
+    display: block;
+    margin-top: 15px;
+    padding: 0;
+    @include hide-text;
+  }
+  .navbar-nav {
+      margin: 27px 0 0 40px;
+      > li > a {
+        @include ace-navbar-links();
+      }
+    }
+  }
+}

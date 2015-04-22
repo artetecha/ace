@@ -1,16 +1,12 @@
 <?php
 
-define('ACE_DEFAULT_THEME', 'bartik');
+define('ACE_DEFAULT_THEME', 'ace');
 define('ACE_DEFAULT_ADMIN_THEME', 'stanley');
 
 /**
- * Implement hook_install().
- *
+ * Helper function for theme setup.
  */
-function ace_install() {
-  include_once DRUPAL_ROOT . '/profiles/standard/standard.install';
-  standard_install();
-
+function __ace_theme_setup() {
   // Disable themes.
   $theme_list = array_keys(list_themes());
   theme_disable($theme_list);
@@ -36,4 +32,24 @@ function ace_install() {
   // and doing the variable_set() before the theme_enable() could result
   // in a race condition where the theme is default but not enabled.
   menu_rebuild();
+}
+
+/**
+ * Implement hook_install().
+ *
+ */
+function ace_install() {
+  include_once DRUPAL_ROOT . '/profiles/standard/standard.install';
+  standard_install();
+
+  // ACE stuff.
+  __ace_theme_setup();
+}
+
+/**
+ * ACE front-end theme and jquery_update.
+ */
+function ace_update_7301() {
+  __ace_theme_setup();
+  module_enable(array('jquery_update'));
 }

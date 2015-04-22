@@ -27,6 +27,7 @@ dependencies[] = rdf
 
 ; Contrib modules.
 dependencies[] = features
+dependencies[] = jquery_update
 dependencies[] = pathauto
 dependencies[] = revisioning
 dependencies[] = views
