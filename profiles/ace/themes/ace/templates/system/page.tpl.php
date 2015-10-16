@@ -77,13 +77,14 @@
   <div class="container">
     <div class="navbar-header">
       <?php if ($logo): ?>
-      <a class="logo navbar-btn pull-left" href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>">
-        <img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>" />
-      </a>
+        <a class="logo navbar-btn pull-left" href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>">
+          <img src="<?php print $logo; ?>" alt="<?php print t('Home'); ?>"/>
+        </a>
       <?php endif; ?>
 
       <?php if (!empty($site_name)): ?>
-      <a class="name navbar-brand" href="<?php print $front_page; ?>" title="<?php print t('Home'); ?>"><?php print $site_name; ?></a>
+        <a class="name navbar-brand" href="<?php print $front_page; ?>"
+           title="<?php print t('Home'); ?>"><?php print $site_name; ?></a>
       <?php endif; ?>
 
       <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
@@ -121,7 +122,8 @@
     <?php endif; ?>
 
     <?php print render($page['header']); ?>
-  </header> <!-- /#page-header -->
+  </header>
+  <!-- /#page-header -->
 
   <div class="row">
 
@@ -135,7 +137,7 @@
       <?php if (!empty($page['highlighted'])): ?>
         <div class="highlighted jumbotron"><?php print render($page['highlighted']); ?></div>
       <?php endif; ?>
-      <?php if (!empty($breadcrumb)): print $breadcrumb; endif;?>
+      <?php if (!empty($breadcrumb)): print $breadcrumb; endif; ?>
       <a id="main-content"></a>
       <?php print render($title_prefix); ?>
       <?php if (!empty($title)): ?>
@@ -163,8 +165,22 @@
 
   </div>
 </div>
+
+<section class="container-beige container-fluid">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">Our Partners<?php print render($page['content_bottom']); ?></div>
+    </div>
+  </div>
+</section>
+
 <footer class="footer container-fluid">
   <div class="container">
-  <?php print render($page['footer']); ?>
+    <div class="row">
+      <div class="col-xs-12 col-sm-12"><?php print render($page['footer']); ?></div>
+      <div class="col-xs-12 col-sm-4"><?php print render($page['footer_col_1']); ?></div>
+      <div class="col-xs-12 col-sm-4"><?php print render($page['footer_col_2']); ?></div>
+      <div class="col-xs-12 col-sm-4"><?php print render($page['footer_col_3']); ?></div>
+    </div>
   </div>
 </footer>

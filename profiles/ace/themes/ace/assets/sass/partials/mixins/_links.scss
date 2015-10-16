@@ -1,0 +1,56 @@
+// Custom mixins
+
+// Navigation links
+
+// Mixin for main nav links with round corners
+@mixin ace-navbar-link() {
+  text-transform: uppercase;
+  font-size: 16px;
+  color: #fff;
+  margin: 0 8px 0 0;
+  padding: 4px 10px;
+  @include border-radius(10px 0, 10px 0);
+  @include opacity(0.8);
+
+  @media (min-width: $screen-md-min) {
+    margin: 0 20px 0 0;
+  }
+}
+
+// Round footer social media links
+@mixin ace-social-menu-link() {
+  @include hide-text();
+  @include border-radius(50%);
+
+  background-color: $beige-base;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  position: relative;
+  &:before {
+    @extend .fa;
+    position: relative;
+    left: 8px;
+    top: 7px;
+    color: $brown-base;
+    font-size: 25px;
+
+  }
+  &[href*="facebook.com"]:before { content: $fa-var-facebook; }
+
+  &[href*="twitter.com"] {
+    &:before {
+      content: $fa-var-twitter;
+    }
+  }
+  &[href*="rss.xml"] {
+    &:before {
+      content: $fa-var-rss;
+    }
+  }
+  &[href*="youtube.com"] {
+    &:before {
+      content: $fa-var-youtube-play;
+    }
+  }
+}

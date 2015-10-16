@@ -1,12 +1,44 @@
 // Footer styles
 
-footer {
+.container-beige {
+  height: 50px;
+  background-color: $beige-base;
+}
+
+.container-brown {
   background-color: $brown-base;
-  .ace-social-menu li {
-    float: left;
-    a {
-      
+}
+
+footer {
+  color: $beige-base;
+  background-color: $brown-base;
+  .ace-social-menu {
+    margin: 20px 0;
+    li {
+      float: left;
+      margin: 0 10px 0 0;
+      a {
+        @include ace-social-menu-link();
+
+      }
     }
+  }
+  #block-search-form {
+    margin: 20px 0;
+  }
+  h2 {
+    text-transform: uppercase;
+    color: $orange-base;
+    font: {
+      weight: 300;
+      size: 16px;
+    }
+    margin: 20px 0 15px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid $brown-darker;
+  }
+  button {
+    text-transform: uppercase;
   }
 }
 

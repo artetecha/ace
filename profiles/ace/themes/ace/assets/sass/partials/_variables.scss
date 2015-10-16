@@ -3,6 +3,8 @@ $bootstrap-sass-asset-helper: false !default;
 // Variables Override => Bootstrap/stylesheets/variables.scss
 // --------------------------------------------------
 
+$ace-img-path: "../img";
+$ace-font-path: "../fonts";
 
 //== Colors
 //
@@ -20,14 +22,17 @@ $brand-success:         #5cb85c !default;
 $brand-info:            #5bc0de !default;
 $brand-warning:         #f0ad4e !default;
 $brand-danger:          #d9534f !default;
+
 // ACE Brand Colours
-$brown-base:           #322C2A !default;
-$brown-darker:         darken($brown-base, 20%) !default;
-$orange-base:          #F7941E !default;
-$beige-base:           #C2B59B !default;
+$brown-base:           #312c2a;
+$brown-darker:         darken($brown-base, 10%);
+$brown-lighter:        lighten($brown-base, 20%);
+$orange-base:          #f7931e; // Text links, CTA buttons, hover state
+$beige-base:           #c2b59b;
+
 // Logos
-$logo-mobile:          url("../images/logo.png") no-repeat 0 0 !default;
-$logo-desktop:          url("../images/logo.png") no-repeat 0 0 !default;
+$logo-mobile:          url("#{$ace-img-path}/logo.png") no-repeat 0 0 !default;
+$logo-desktop:         url("#{$ace-img-path}/logo-desktop.png") no-repeat 0 0 !default;
 
 //== Scaffolding
 //
@@ -50,18 +55,25 @@ $link-hover-decoration: underline !default;
 //
 //## Font, line-height, and color for body text, headings, and more.
 
-$font-family-sans-serif:  "Helvetica Neue", Helvetica, Arial, sans-serif !default;
+// ACE brand base font family "Aleo"
+$font-family-brand:  "Aleo", Arial, "Helvetica Neue", Helvetica, sans-serif !default;
+
+$font-family-sans-serif:  $font-family-brand;
 $font-family-serif:       Georgia, "Times New Roman", Times, serif !default;
 //** Default monospace fonts for `<code>`, `<kbd>`, and `<pre>`.
 $font-family-monospace:   Menlo, Monaco, Consolas, "Courier New", monospace !default;
 $font-family-base:        $font-family-sans-serif !default;
 
-$font-size-base:          14px !default;
+// Font sizes change on mobile and desktop
+$font-size-base-sm: 10px; // Not being used yet
+$font-size-base-lg: 14px; // Not being used yet
+
+$font-size-base:          14px;
 $font-size-large:         ceil(($font-size-base * 1.25)) !default; // ~18px
 $font-size-small:         ceil(($font-size-base * 0.85)) !default; // ~12px
 
 $font-size-h1:            floor(($font-size-base * 2.6)) !default; // ~36px
-$font-size-h2:            floor(($font-size-base * 2.15)) !default; // ~30px
+$font-size-h2:            floor(($font-size-base * 2)) !default; // ~30px
 $font-size-h3:            ceil(($font-size-base * 1.7)) !default; // ~24px
 $font-size-h4:            ceil(($font-size-base * 1.25)) !default; // ~18px
 $font-size-h5:            $font-size-base !default;
@@ -74,7 +86,7 @@ $line-height-computed:    floor(($font-size-base * $line-height-base)) !default;
 
 //** By default, this inherits from the `<body>`.
 $headings-font-family:    inherit !default;
-$headings-font-weight:    500 !default;
+$headings-font-weight:    600;
 $headings-line-height:    1.1 !default;
 $headings-color:          inherit !default;
 
@@ -114,7 +126,7 @@ $padding-xs-horizontal:     5px !default;
 $line-height-large:         1.3333333 !default; // extra decimals for Win 8.1 Chrome
 $line-height-small:         1.5 !default;
 
-$border-radius-base:        4px !default;
+$border-radius-base:        0 !default;
 $border-radius-large:       6px !default;
 $border-radius-small:       3px !default;
 
@@ -156,9 +168,9 @@ $table-border-color:            #ddd !default;
 
 $btn-font-weight:                normal !default;
 
-$btn-default-color:              #333 !default;
-$btn-default-bg:                 #fff !default;
-$btn-default-border:             #ccc !default;
+$btn-default-color:              #fff !default;
+$btn-default-bg:                 $orange-base !default;
+$btn-default-border:             darken($orange-base, 20%) !default;
 
 $btn-primary-color:              #fff !default;
 $btn-primary-bg:                 $brand-primary !default;
@@ -364,23 +376,23 @@ $container-lg:                 $container-large-desktop !default;
 //##
 
 // Basics of a navbar
-$navbar-height:                    123px !default;
+$navbar-height:                    87px;
 $navbar-margin-bottom:             $line-height-computed !default;
 $navbar-border-radius:             $border-radius-base !default;
 $navbar-padding-horizontal:        floor(($grid-gutter-width / 2)) !default;
-$navbar-padding-vertical:          (($navbar-height - $line-height-computed) / 2) !default;
+$navbar-padding-vertical:          0;
 $navbar-collapse-max-height:       340px !default;
 
 $navbar-default-color:             #777 !default;
-$navbar-default-bg:                $brown-base !default;
-$navbar-default-border:            darken($navbar-default-bg, 6.5%) !default;
+$navbar-default-bg:                #51312a;
+$navbar-default-border:            none;
 
 // Navbar links
 $navbar-default-link-color:                #777 !default;
 $navbar-default-link-hover-color:          #333 !default;
 $navbar-default-link-hover-bg:             transparent !default;
 $navbar-default-link-active-color:         #fff !default;
-$navbar-default-link-active-bg:            darken($navbar-default-bg, 6.5%) !default;
+$navbar-default-link-active-bg:            #51312a;
 $navbar-default-link-disabled-color:       #ccc !default;
 $navbar-default-link-disabled-bg:          transparent !default;
 
@@ -390,9 +402,9 @@ $navbar-default-brand-hover-color:         darken($navbar-default-brand-color, 1
 $navbar-default-brand-hover-bg:            transparent !default;
 
 // Navbar toggle
-$navbar-default-toggle-hover-bg:           #ddd !default;
-$navbar-default-toggle-icon-bar-bg:        #888 !default;
-$navbar-default-toggle-border-color:       #ddd !default;
+$navbar-default-toggle-hover-bg:           lighten($orange-base, 10%);
+$navbar-default-toggle-icon-bar-bg:        #fff;
+$navbar-default-toggle-border-color:       transparentize($orange-base, 0.4);
 
 
 // Inverted navbar

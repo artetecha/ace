@@ -2,7 +2,14 @@
 
 @import "compass"; // Import all extensions of compass
 // @import "compass/css3" Import only CSS3
+
 @import "partials/variables"; // Modify this for custom colors, font-sizes, etc
+
+// Font Awesome
+@import "../fonts/font-awesome/scss/font-awesome";
+// ACE Fonts
+@import "partials/fonts";
+
 // copy of _bootstrap.scss without the variables which is declared above
 // Core variables and mixins
 @import "../../bootstrap/stylesheets/bootstrap/mixins";
@@ -60,9 +67,8 @@
 // @include all-header-sprites;
 
 // Custom mixins
-@import "partials/mixins";
+@import "partials/mixins/links";
 // Custom styles
 @import "partials/header";
 @import "partials/footer";
 @import "partials/content";
-

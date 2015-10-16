@@ -5,7 +5,6 @@ version = VERSION
 core = 7.x
 
 ; Core modules.
-dependencies[] = adminimal_admin_menu
 dependencies[] = block
 dependencies[] = blog
 dependencies[] = comment
@@ -26,15 +25,54 @@ dependencies[] = file
 dependencies[] = rdf
 
 ; Contrib modules.
+dependencies[] = admin_views
+dependencies[] = adminimal_admin_menu
+dependencies[] = date_popup_authored
+dependencies[] = entityreference
+dependencies[] = facetapi
 dependencies[] = features
+dependencies[] = field_group
+dependencies[] = fieldable_panels_panes
+dependencies[] = file_entity
 dependencies[] = jquery_update
+dependencies[] = libraries
+dependencies[] = link
+dependencies[] = linkit
+dependencies[] = mailchimp_activity
+dependencies[] = mailchimp_campaign
+dependencies[] = mailchimp_lists
+dependencies[] = mailchimp_signup
+dependencies[] = media_vimeo
+dependencies[] = media_youtube
+dependencies[] = menu_block
+dependencies[] = module_filter
+dependencies[] = panelizer
+dependencies[] = panels_bootstrap_layouts
+dependencies[] = panels_breadcrumbs
+dependencies[] = panels_extra_layouts
 dependencies[] = pathauto
+dependencies[] = pm_existing_pages
+dependencies[] = respondjs
 dependencies[] = revisioning
+dependencies[] = save_draft
+dependencies[] = slick
+dependencies[] = strongarm
+dependencies[] = tablefield
+dependencies[] = transliteration
+dependencies[] = uuid
 dependencies[] = views
+dependencies[] = views_autocomplete_filters
+dependencies[] = views_bootstrap
+dependencies[] = views_bulk_operations
 dependencies[] = views_ui
+dependencies[] = wysiwyg
+dependencies[] = search_api_solr
 
 ; Patheon modules.
 dependencies[] = pantheon_api
+dependencies[] = pantheon_apachesolr
 dependencies[] = pantheon_login
+
+; Features.
 
 files[] = ace.profile

@@ -1,0 +1,21 @@
+// Ace fonts
+
+@font-face {
+  font-family: "Aleo";
+  src: url("#{$ace-font-path}/aleo-regular-webfont.eot?#iefix") format("embedded-opentype"),
+  url("#{$ace-font-path}/aleo-regular-webfont.woff") format("woff"),
+  url("#{$ace-font-path}/aleo-regular-webfont.ttf")  format("truetype"),
+  url("#{$ace-font-path}/aleo-regular-webfont.svg#AceSans-Regular") format("svg");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Aleo bold";
+  src: url("#{$ace-font-path}/aleo-bold-webfont.eot?#iefix") format("embedded-opentype"),
+  url("#{$ace-font-path}/aleo-bold-webfont.woff") format("woff"),
+  url("#{$ace-font-path}/aleo-bold-webfont.ttf")  format("truetype"),
+  url("#{$ace-font-path}/aleo-bold-webfont.svg#AceSans-Bold") format("svg");
+  font-weight: bold;
+  font-style: normal;
+}

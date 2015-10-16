@@ -8,17 +8,27 @@ base theme = bootstrap
 ;; Regions
 ;;;;;;;;;;;;;;;;;;;;;
 
+; Header
 regions[navigation]     = 'Navigation'
+; Content area
 regions[header]         = 'Top Bar'
 regions[highlighted]    = 'Highlighted'
 regions[help]           = 'Help'
 regions[content]        = 'Content'
+; Side bars
 regions[sidebar_first]  = 'Primary'
 regions[sidebar_second] = 'Secondary'
-regions[footer]         = 'Footer'
+; Reserved for html.tpl.php
 regions[page_top]       = 'Page top'
 regions[page_bottom]    = 'Page bottom'
-
+;
+regions[content_bottom]   = 'Bottom content'
+; Footer
+regions[footer]         = 'Footer'
+; Three columns in the footer
+regions[footer_col_1]   = 'Footer Col1'
+regions[footer_col_2]   = 'Footer Col2'
+regions[footer_col_3]   = 'Footer Col3'
 
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Stylesheets

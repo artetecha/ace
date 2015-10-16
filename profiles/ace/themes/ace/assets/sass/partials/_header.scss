@@ -1,26 +1,89 @@
 // Header styles
 
 #navbar {
-  @media (min-width: $grid-float-breakpoint) {
-  border: none;
-  border-radius: 0;
+  // Mobile
+  background: url("#{$ace-img-path}/navbar-bg-texture.jpg") no-repeat 0 0;
   height: $navbar-height;
-  border-top: 8px solid $brown-base;
-  border-bottom: 8px solid $brown-base;
-  .navbar-brand {
-    background: $logo-mobile;
-    width: 80px;
-    height: 70px;
-    display: block;
-    margin-top: 15px;
-    padding: 0;
-    @include hide-text;
+  border: {
+    bottom: 7px solid $brown-darker;
+    top: none;
+    left: none;
+    right: none;
   }
-  .navbar-nav {
-      margin: 27px 0 0 40px;
-      > li > a {
-        @include ace-navbar-links();
+  @media (min-width: $screen-sm-min) {
+    border: none;
+    height: ($navbar-height + 50);
+    border: {
+      radius: 0;
+      top: 7px solid $brown-darker;
+      bottom: 7px solid $brown-darker;
+    }
+
+  }
+  .container {
+    background: {
+      image: url("#{$ace-img-path}/navbar-bg-trees.png");
+      repeat: no-repeat;
+      position: 90% 100%;
+    }
+    height: 81px;
+    @media (min-width: $screen-sm-min) {
+      height: 124px;
+      background: {
+       position: 60% 100%;
       }
     }
   }
+}
+
+.navbar-default {
+  .navbar-nav {
+    @media (min-width: $screen-sm-min) {
+      margin: 49px 0 0 20px;
+      > li > a {
+        @include ace-navbar-link();
+      }
+      > li.last > a {
+        background-color: $orange-base;
+        border-radius: 10px;
+        margin: -6px 0 0 30px;
+        padding: 10px 30px;
+        font-size: 18px;
+        @include opacity(1);
+
+        @media (min-width: $screen-md-min) {
+          margin: -6px 0 0 100px;
+        }
+      }
+    }
+
+    @media (min-width: $screen-md-min) {
+      margin: 49px 0 0 60px;
+    }
+  }
+
+  .navbar-toggle {
+    background-color: $navbar-default-toggle-border-color;
+  }
+}
+
+// Desktop
+.navbar-brand {
+  margin-top: 5px;
+  background: $logo-mobile;
+  width: 80px;
+  height: 70px;
+  display: block;
+  padding: 0;
+  @include hide-text;
+  @media (min-width: $screen-sm-min) {
+    margin-top: 10px;
+    background: $logo-desktop;
+    width: 120px;
+    height: 105px;
+  }
+}
+
+.navbar-collapse {
+  border: none;
 }

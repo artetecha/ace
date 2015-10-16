@@ -1,7 +1,7 @@
 <?php
 
 define('ACE_DEFAULT_THEME', 'ace');
-define('ACE_DEFAULT_ADMIN_THEME', 'stanley');
+define('ACE_DEFAULT_ADMIN_THEME', 'adminimal_theme');
 
 /**
  * Helper function for theme setup.
@@ -52,4 +52,50 @@ function ace_install() {
 function ace_update_7301() {
   __ace_theme_setup();
   module_enable(array('jquery_update'));
+}
+
+/**
+ * Enable additional modules.
+ * (for sites already using ACE profile before this point).
+ */
+function ace_update_7302() {
+  $mods = array(
+    'admin_views',
+    'date_popup_authored',
+    'entityreference',
+    'facetapi',
+    'field_group',
+    'fieldable_panels_panes',
+    'file_entity',
+    'libraries',
+    'link',
+    'linkit',
+    'mailchimp_activity',
+    'mailchimp_campaign',
+    'mailchimp_lists',
+    'mailchimp_signup',
+    'media_vimeo',
+    'media_youtube',
+    'menu_block',
+    'module_filter',
+    'panelizer',
+    'panels_bootstrap_layouts',
+    'panels_breadcrumbs',
+    'panels_extra_layouts',
+    'pm_existing_pages',
+    'respondjs',
+    'save_draft',
+    'slick',
+    'strongarm',
+    'tablefield',
+    'transliteration',
+    'uuid',
+    'views_autocomplete_filters',
+    'views_bootstrap',
+    'views_bulk_operations',
+    'wysiwyg',
+    'pantheon_apachesolr',
+    'search_api_solr',
+  );
+  module_enable($mods);
 }
