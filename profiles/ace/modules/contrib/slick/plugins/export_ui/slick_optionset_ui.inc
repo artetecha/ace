@@ -1,33 +1,11 @@
 <?php
 /**
  * @file
- * Export interface plugin.
+ * This file is no longer in use.
+ *
+ * This file is kept to avoid sudden WSOD, or errors during update process, when
+ * the process is reversed: running /update.php prior to clearing cache.
+ * The safe recommended procedure is: clearing cache/registry -> /update.php.
+ *
+ * @todo delete after full release or so, till beta1 installs decrease.
  */
-
-/**
- * Define this Export UI plugin.
- */
-$plugin = array(
-  'schema' => 'slick_optionset',
-  'access' => 'administer slick',
-
-  // Define the menu item.
-  'menu' => array(
-    'menu prefix' => 'admin/config/media',
-    'menu item' => 'slick',
-    'menu title' => 'Slick carousel',
-    'menu description' => 'Administer Slick carousel presets.',
-  ),
-
-  // Define user interface texts.
-  'title singular' => t('optionset'),
-  'title plural' => t('optionsets'),
-  'title singular proper' => t('Slick carousel optionset'),
-  'title plural proper' => t('Slick carousel optionsets'),
-
-  // Define our handler.
-  'handler' => array(
-    'class' => 'SlickOptionsetUi',
-    'parent' => 'ctools_export_ui',
-  ),
-);

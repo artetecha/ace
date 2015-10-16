@@ -3,152 +3,149 @@
  * Provides Slick loader.
  */
 
-(function($, Drupal) {
+/*jshint -W072 */
+/*eslint max-params: 0, consistent-this: [0, "_"] */
+(function ($, Drupal) {
 
   "use strict";
 
   Drupal.behaviors.slick = {
-    attach: function(context, settings) {
-
-      $('.slick', context).once('slick', function() {
-        var t = $('> .slick__slider', this),
-          a = $('~ .slick__arrow', t),
-          configs = t.data('config') || {},
-          merged = $.extend({}, settings.slick, configs),
-          globals = Drupal.slick.globals(t, a, merged);
-
-        // Populate defaults + globals into each breakpoint.
-        if (typeof configs.responsive !== 'undefined') {
-          $.map(configs.responsive, function(v, i) {
-            if (typeof configs.responsive !== 'undefined' && typeof configs.responsive[i].settings !== 'undefined' && configs.responsive[i].settings !== 'unslick') {
-              configs.responsive[i].settings = $.extend({}, settings.slick, globals, configs.responsive[i].settings);
-            }
-          });
-        }
+    attach: function (context, settings) {
+      var _ = this;
+      $(".slick:not(.unslick)", context).once("slick", function () {
+        var me = $(this),
+          t = $("> .slick__slider", me),
+          a = $("> .slick__arrow", me),
+          o = $.extend({}, settings.slick, t.data("slick"));
 
         // Build the Slick.
-        Drupal.slick.beforeSlick(t, a);
-        t.slick($.extend(globals, configs));
-        Drupal.slick.afterSlick(t);
+        _.beforeSlick(t, a, o);
+        t.slick(_.globals(t, a, o));
+        _.afterSlick(t, o);
       });
-    }
-  };
-
-  Drupal.slick = {
+    },
 
     /**
      * The event must be bound prior to slick being called.
      */
-    beforeSlick: function(t, a) {
-      var _ = this;
+    beforeSlick: function (t, a, o) {
+      var _ = this,
+        breakpoint;
       _.randomize(t);
 
-      t.on('init', function(e, slick) {
-        // Update arrows with possible nested slick.
-        if (t.attr('id') === slick.$slider.attr('id')) {
-          _.arrows(a, slick);
+      t.on("init.slick", function (e, slick) {
+        // Populate defaults + globals into each breakpoint.
+        var sets = slick.options.responsive || null;
+        if (sets && sets.length > -1) {
+          for (breakpoint in sets) {
+            if (sets.hasOwnProperty(breakpoint)
+              && sets[breakpoint].settings !== "unslick") {
+              slick.breakpointSettings[sets[breakpoint].breakpoint] = $.extend(
+                {},
+                Drupal.settings.slick,
+                _.globals(t, a, o),
+                sets[breakpoint].settings);
+            }
+          }
         }
-        _.setCurrent(t, slick.currentSlide);
       });
 
-      t.on('beforeChange', function(e, slick, currentSlide, animSlide) {
-        _.setCurrent(t, animSlide);
+      t.on("setPosition.slick", function (e, slick) {
+        _.setPosition(t, a, slick);
       });
     },
 
     /**
      * The event must be bound after slick being called.
      */
-    afterSlick: function(t) {
+    afterSlick: function (t, o) {
       var _ = this,
-        slick = t.slick('getSlick'),
-        opt = _.options(slick);
+        slick = t.slick("getSlick");
 
       // Arrow down jumper.
-      t.parent().on('click', '.jump-scroll[data-target]', function(e) {
-        e.preventDefault();
-        var a = $(this);
-        $('html, body').stop().animate({
-          scrollTop: $(a.data('target')).offset().top - (a.data('offset') || 0)
-        }, 800, opt.easing || 'swing');
-      });
-
-      if ($.isFunction($.fn.mousewheel) && opt.mousewheel) {
-        t.on('mousewheel', function(e, delta) {
+      t.parent().on("click.slick.load", ".slick-down", function (e) {
           e.preventDefault();
-          var wheeler = (delta < 0) ? t.slick('slickNext') : t.slick('slickPrev');
+          var b = $(this);
+          $("html, body").stop().animate({
+            scrollTop: $(b.data("target")).offset().top - (b.data("offset") || 0)
+          }, 800, o.easing);
+        });
+
+      if (o.mousewheel) {
+        t.on("mousewheel.slick.load", function (e, delta) {
+          e.preventDefault();
+          return (delta < 0) ? t.slick("slickNext") : t.slick("slickPrev");
         });
       }
 
-      t.trigger('afterSlick', [_, slick, slick.currentSlide]);
-    },
-
-    /**
-     * Gets active options based on breakpoint, or fallback to global.
-     */
-    options: function(slick) {
-      var breakpoint = slick.activeBreakpoint || null;
-      return breakpoint && (slick.windowWidth < breakpoint) ? slick.breakpointSettings[breakpoint] : slick.options;
+      t.trigger("afterSlick", [_, slick, slick.currentSlide]);
     },
 
     /**
      * Randomize slide orders, for ads/products rotation within cached blocks.
      */
-    randomize: function(t) {
-      if (t.parent().hasClass('slick--random') && !t.hasClass('slick-initiliazed')) {
-        t.children().sort(function() {
+    randomize: function (t) {
+      if (t.parent().hasClass("slick--random")
+        && !t.hasClass("slick-initiliazed")) {
+        t.children().sort(function () {
             return 0.5 - Math.random();
           })
-          .each(function() {
+          .each(function () {
             t.append(this);
           });
       }
     },
 
     /**
-     * Fixed known arrows issue when total <= slidesToShow, and not updated.
-     */
-    arrows: function(a, slick) {
-      var _ = this,
-        opt = _.options(slick);
-      a.find('>*:not(.slick-down)').addClass('slick-nav');
-      // Do not remove arrows, to allow responsive have different options.
-      var arrows = slick.slideCount <= opt.slidesToShow || opt.arrows === false ? a.hide() : a.show();
-    },
-
-    /**
-     * Returns the current slide class.
+     * Fixed for known issues with the slick-current and arrows.
      *
-     * Without centerMode, .slick-active can be as many as visible slides, hence
-     * added a specific class. Also fix total <= slidesToShow with centerMode.
-     * Given different situations, as of v1.5 Master, still can't interact with
-     * internal selectors consistently, e.g.: slick.$slides.eq(curr).
+     * Still kept after v1.5.8 (8/4) as "slick-current" fails with asNavFor:
+     *   - Create asNavFor with the total <= slidesToShow and centerMode.
+     *   - Drag the main large display, or click its arrows, thumbnail
+     *     slick-current class is not updated/ synched, always stucked at 0.
+     *
+     * @todo drop if any core fix after v1.5.8 (8/4).
      */
-    setCurrent: function(t, curr) {
-      // Must take care for both asNavFor instances, with/without slick-wrapper.
-      var w = t.parent('.slick').parent();
-      $('.slick-slide', w).removeClass('slide--current');
-      $('[data-slick-index="' + curr + '"]', w).addClass('slide--current');
+    setPosition: function (t, a, slick) {
+      // Be sure the most complex slicks are taken care of as well, e.g.:
+      // asNavFor with the main display containing nested slicks.
+      if (t.attr("id") === slick.$slider.attr("id")) {
+        var opt = slick.options;
+        // Must take care for asNavFor instances, with/without slick-wrapper,
+        // with/without block__no_wrapper/ views_view_no_wrapper, etc.
+        var w = t.parent().parent(".slick-wrapper").length
+          ? t.parent().parent(".slick-wrapper") : t.parent(".slick");
+
+        $(".slick-slide", w).removeClass("slick-current");
+        $("[data-slick-index='" + slick.currentSlide + "']", w).addClass("slick-current");
+
+        // Do not remove arrows, to allow responsive have different options.
+        return slick.slideCount <= opt.slidesToShow || opt.arrows === false
+          ? a.addClass("element-hidden") : a.removeClass("element-hidden");
+      }
     },
 
     /**
-     * Declare global options explicitly to copy into responsives.
+     * Declare global options explicitly to copy into responsive settings.
      */
-    globals: function(t, a, merged) {
+    globals: function (t, a, o) {
       return {
-        slide: merged.slide,
-        lazyLoad: merged.lazyLoad,
-        dotsClass: merged.dotsClass,
-        rtl: merged.rtl,
-        appendDots: merged.appendDots || $(t),
-        prevArrow: $('.slick-prev', a),
-        nextArrow: $('.slick-next', a),
+        slide: o.slide,
+        lazyLoad: o.lazyLoad,
+        dotsClass: o.dotsClass,
+        rtl: o.rtl,
+        appendDots: o.appendDots === ".slick__arrow"
+          ? a : (o.appendDots || $(t)),
+        prevArrow: $(".slick-prev", a),
+        nextArrow: $(".slick-next", a),
         appendArrows: a,
-        customPaging: function(slick, i) {
-          var tn = slick.$slides.eq(i).find('[data-thumb]') || null,
-            dots_thumb = tn.length && merged.dotsClass.indexOf('thumbnail') > 0 ?
-              '<div class="slick-dots__thumbnail"><img alt="' + Drupal.t(tn.attr('alt')) + '" src="' + tn.data('thumb') + '"></div>' : '';
-          return dots_thumb + slick.defaults.customPaging(slick, i);
+        customPaging: function (slick, i) {
+          var tn = slick.$slides.eq(i).find("[data-thumb]") || null,
+            alt = Drupal.t(tn.attr("alt")) || "",
+            img = "<img alt='" + alt + "' src='" + tn.data("thumb") + "'>",
+            dotsThumb = tn.length && o.dotsClass.indexOf("thumbnail") > 0 ?
+              "<div class='slick-dots__thumbnail'>" + img + "</div>" : "";
+          return dotsThumb + slick.defaults.customPaging(slick, i);
         }
       };
     }

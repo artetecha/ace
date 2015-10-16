@@ -2,7 +2,40 @@
 /**
  * @file
  * Hooks and preprocess functions for the Slick module.
+ *
+ * The entire functions here, save for theme_slick_wrapper(), are dormant when
+ * the render cache option is enabled.
  */
+
+/**
+ * Returns HTML for a slick_wrapper when asNavFor, or cache, in use.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - items: An array of slick instances: main and thumbnail slicks.
+ *   - settings: HTML related settings.
+ *
+ * @ingroup themeable
+ */
+function theme_slick_wrapper(array $variables) {
+  $build    = '';
+  $element  = $variables['element'];
+  $items    = $element['#items'];
+  $settings = isset($element['#settings']) ? $element['#settings'] : array();
+  $skin     = isset($settings['skin']) ? $settings['skin'] : '';
+
+  foreach ($items as $item) {
+    $build .= drupal_render($item);
+  }
+
+  $attributes['class'] = array('slick-wrapper', 'slick-wrapper--asnavfor');
+  if ($skin && $skin != 'asnavfor') {
+    $attributes['class'][] = drupal_clean_css_identifier('slick-wrapper--' . $skin);
+  }
+
+  // Clean up markups for the cached version if it is a single slick.
+  return count($items) > 1 ? '<div' . drupal_attributes($attributes) . '>' . $build . '</div>' : $build;
+}
 
 /**
  * Prepares variables for slick templates.
@@ -12,269 +45,184 @@
  * @variables array:
  *   An associative array containing:
  *   - element: An associative array containing the properties of the element.
- *     Properties used: #items, #settings, #options, #attached.
+ *     Properties used: #items, #settings, #options, #optionset, #attached.
  *     - #settings is set via sub-modules and serves various purposes, and not
  *       related to JS settings, mostly slide layouts or attaching assets.
  *     - #options is set programmatically, or hand-crafted, and only accepts
- *       direct key|value pairs related to JS settings, or at least an optionset
- *       name.
+ *       direct key|value pairs related to JS settings, or an optionset name.
+ *     - #optionset, if supplied, ensures the optionset loaded once, and cached.
  */
 function template_preprocess_slick(&$variables) {
-  $element = $variables['element'];
-  $items   = $element['#items'];
-  $count   = count($items);
-
-  // HTML or layout related settings, none of JS settings, except mousewheel.
-  $defaults = slick_get_element_default_settings($count);
-  $settings = isset($element['#settings']) ? array_merge($defaults, $element['#settings']) : $defaults;
-  $customs  = isset($element['#options']) ? $element['#options'] : array();
-
-  // Optionset may be defined via custom code, CTools UI, or sub-modules.
-  $optionset_name = isset($customs['optionset']) ? check_plain($customs['optionset']) : $settings['optionset'];
-
-  // Load the selected optionset, or fallback to default.
-  $optionset = slick_optionset_load($optionset_name);
-  $options   = $optionset->options;
-  $general   = $options['general'];
+  $element   = $variables['element'];
+  $count     = count($element['#items']);
+  $defaults  = slick_get_element_default_settings();
+  $settings  = isset($element['#settings']) ? array_merge($defaults, $element['#settings']) : $defaults;
+  $customs   = isset($element['#options']) ? $element['#options'] : array();
+  $name      = isset($customs['optionset']) ? check_plain($customs['optionset']) : $settings['optionset'];
+  $optionset = isset($element['#optionset']) && is_object($element['#optionset']) ? $element['#optionset'] : slick_optionset_load($name);
+  $general   = $optionset->options['general'];
   $goodies   = $general['goodies'];
+  $js        = $customs ? array_merge($optionset->options['settings'], $customs) : $optionset->options['settings'];
   $skin      = $settings['skin'] ? $settings['skin'] : $optionset->skin;
 
-  // The Slick JS settings defined either via custom #options, or CTools UI.
-  $js = $customs ? array_merge($options['settings'], $customs) : $options['settings'];
+  // Allows manipulating markups with an enforced unslick.
+  $settings['count']   = !empty($settings['count']) ? $settings['count'] : $count;
+  $settings['unslick'] = !empty($settings['unslick']) || $settings['count'] == 1 ? TRUE : FALSE;
 
-  // Configure attributes for containing elements.
-  $attributes = $variables['attributes_array'];
-  $attributes['class'] = $variables['classes_array'];
-  $content_attributes = $variables['content_attributes_array'];
-
-  // Merge with defined attributes.
-  $id = '';
-  if (isset($settings['attributes']) && is_array($settings['attributes'])) {
-    $attributes += $settings['attributes'];
-    $id = isset($attributes['id']) ? $attributes['id'] : '';
-  }
-
-  if (isset($settings['content_attributes']) && is_array($settings['content_attributes'])) {
-    $content_attributes += $settings['content_attributes'];
-  }
-
-  // Set the ID for each slick instance, if none provided, for quick JS lookup.
-  // Do not use this dynamic ID to style a slick, use classes instead.
-  if (empty($attributes['id'])) {
-    $slick_id = &drupal_static('slick_id', 0);
-    $id = 'slick-' . ++$slick_id;
-    if ($settings['current_display'] == 'thumbnail') {
-      $id = $id . '-thumbnail';
-    }
-    $attributes['id'] = $id;
-  }
-
-  $settings['id'] = $id;
-
-  // Since 1.4, Slick is moved to content attributes to allow placing arrows
-  // within the slick container, otherwise custom arrows are slides.
-  if (!isset($content_attributes['id'])) {
-    $content_attributes['id'] = $id . '-slider';
-  }
-  $content_attributes['class'][] = 'slick__slider';
-
-  // Add the slick classes.
-  if ($count == 1) {
-    // Prevent JS errors when only one item given, e.g.: when content editors
-    // provide a single image rather than multiple items at their blog.
-    $attributes['class'][] = 'unslick';
-    $attributes['class'] = array_diff($attributes['class'], array('slick'));
-  }
-  else {
-    // Use this flag to animate the appearance of each slide sequentially using
-    // WOW, inView or jquery.appear.
-    $settings['is_carousel'] = $js['slidesToShow'] > 1;
-    $attributes['class'][] = $settings['is_carousel'] ? 'slick--carousel' : 'slick--slider';
-
-    if (isset($goodies['random']) && $goodies['random']) {
-      $attributes['class'][] = 'slick--random';
-    }
-  }
-
-  $attributes['class'][] = drupal_clean_css_identifier('slick--optionset--' . $optionset_name);
-
-  // Field or Views options override the optionset ones.
-  // With asNavFor, skin maybe skin or skin_thumbnail.
   if ($settings['current_display'] == 'thumbnail') {
-    $skin = isset($settings['skin_thumbnail']) && $settings['skin_thumbnail'] ? $settings['skin_thumbnail'] : $skin;
+    $skin = !empty($settings['skin_thumbnail']) ? $settings['skin_thumbnail'] : $optionset->skin;
   }
 
+  // Prepare attributes.
+  $attributes          = &$variables['attributes_array'];
+  $attributes['class'] = $variables['classes_array'];
+  $content_attributes  = &$variables['content_attributes_array'];
+
+  if (isset($settings['attributes']) && is_array($settings['attributes'])) {
+    $attributes = drupal_array_merge_deep($attributes, $settings['attributes']);
+  }
+
+  if (!isset($attributes['id'])) {
+    $slick_id         = &drupal_static('slick_id', 0);
+    $id               = 'slick-' . ++$slick_id;
+    $attributes['id'] = $settings['current_display'] == 'thumbnail' ? $id . '-thumbnail' : $id;
+  }
+
+  // Consistent styling is always needed even for an unslick.
   if ($skin) {
-    if ($skin !== 'boxed' && strpos($skin, 'boxed') !== FALSE) {
-      $attributes['class'][] = 'slick--skin--boxed';
-    }
-    if ($skin !== 'split' && strpos($skin, 'split') !== FALSE) {
-      $attributes['class'][] = 'slick--skin--split';
+    foreach (array('boxed', 'split') as $key) {
+      if ($skin !== $key && strpos($skin, $key) !== FALSE) {
+        $attributes['class'][] = 'slick--skin--' . $key;
+      }
     }
     $attributes['class'][] = drupal_clean_css_identifier('slick--skin--' . $skin);
+    $settings['skin'] = $skin;
   }
 
-  $attributes['class'][] = isset($js['centerMode']) && $js['centerMode'] ? 'slick--center' : 'slick--float';
-
-  // This is needed by Slick media for the aspect ratio option.
-  if ($settings['field_type']) {
-    $attributes['class'][] = drupal_clean_css_identifier('slick--' . $settings['field_type']);
+  $attributes['class'][] = drupal_clean_css_identifier('slick--optionset--' . $name);
+  if (!empty($general['template_class'])) {
+    $attributes['class'][] = $general['template_class'];
   }
-
-  // Field or Views options override the optionset ones.
-  $settings['has_arrow_down'] = $settings['has_arrow_down'] ? TRUE : isset($goodies['arrow-down']) && $goodies['arrow-down'];
-  $settings['has_pattern'] = $settings['has_pattern'] ? TRUE : isset($goodies['pattern']) && $goodies['pattern'];
 
   // Some settings are only reasonable for the main display, not thumbnail.
   if ($settings['current_display'] == 'main') {
-    if ($settings['has_pattern']) {
-      $attributes['class'][] = 'slick--has-pattern';
-    }
+    $settings['has_pattern'] = $settings['has_pattern'] ? TRUE : !empty($goodies['pattern']);
 
-    if ($settings['has_arrow_down']) {
-      $attributes['class'][] = 'slick--has-arrow-down';
-
-      $settings['arrow_down_target'] = '';
-      if ($general['arrow_down_target']) {
-        $settings['arrow_down_target'] = str_replace(array('#', '.'), '', $general['arrow_down_target']);
-      }
-      $settings['arrow_down_offset'] = $general['arrow_down_offset'] ? $general['arrow_down_offset'] : 125;
-    }
-
-    if ($settings['media_switch'] == 'iframe-switch') {
-      if ($settings['aspect_ratio']) {
-        $attributes['class'][] = $settings['aspect_ratio_overlay'] ? 'slick--ratio-overlay' : 'slick--ratio';
-        $attributes['class'][] = drupal_clean_css_identifier('slick--ratio--' . $settings['aspect_ratio']);
-        $attributes['class'][] = drupal_clean_css_identifier('slick--ratio--' . $settings['field_type']);
-      }
+    if (!empty($settings['media_switch']) && strpos($settings['media_switch'], 'box') !== FALSE) {
+      $swicther = str_replace('-switch', '', $settings['media_switch']);
+      $attributes['class'][] = 'slick--' . $swicther;
     }
   }
 
-  if (!empty($general['template_class'])) {
-    $attributes['class'][] = strip_tags($general['template_class']);
+  // Prevents broken slick when only one item given, or an enforced unslick.
+  if (!empty($settings['unslick'])) {
+    $attributes['class'][] = 'unslick';
   }
-
-  // Provide context to fix excessive height with lazyLoad ondemand.
-  if ($js['lazyLoad'] == 'ondemand') {
-    $attributes['class'][] = 'slick--ondemand';
-  }
-
-  // focusOnSelect will not work with empty slide value, so add proper selector.
-  // Intentionaly empty the fallback, not using the useless old selector "div"
-  // anymore in favor of the new blank default, and clean up old JSON object.
-  // @see https://github.com/kenwheeler/slick/issues/789
-  $js['slide'] = !$js['slide'] && $js['focusOnSelect'] ? '.slick__slide' : '';
-
-  // Only add asNavFor if we do have thumbnail optionset.
-  // Implementor is now responsible to pass the proper asnavfor targets which is
-  // defined for both main and thumbnail display accordingly.
-  if ($settings['optionset_thumbnail'] && $settings['asnavfor_target']) {
-    // Enforce clickable thumbnail, and solves old lingering "div".
-    if ($settings['current_display'] == 'thumbnail') {
-      $js['slide'] = '.slick__slide';
-      $js['focusOnSelect'] = TRUE;
-    }
-
-    $attributes['class'][] = 'slick--display--' . $settings['current_display'];
-
-    // The asnavfor_target can be main or thumbnail display accordingly.
-    $js['asNavFor'] = check_plain(trim($settings['asnavfor_target']));
-  }
-  // Prevents non-empty, but not-used, asNavFor from breaking the slide.
   else {
-    $js['asNavFor'] = '';
-  }
-
-  // The slider must have the attribute "dir" set to "rtl", if so configured.
-  if (isset($js['rtl']) && $js['rtl']) {
-    $content_attributes['dir'] = 'rtl';
-  }
-
-  // Arrows are enforced to allow responsive options hide/show them.
-  // Limit sanitization with button, and a few reasonable tags.
-  $settings['arrows'] = $js['arrows'];
-  $allowed_tags = array('a', 'em', 'strong', 'button', 'p', 'div', 'i', 'span');
-  $is_prev = isset($js['prevArrow']) && $js['prevArrow'];
-  $is_next = isset($js['nextArrow']) && $js['nextArrow'];
-
-  $default_prev = slick_get_default_value('prevArrow');
-  $default_next = slick_get_default_value('nextArrow');
-
-  $settings['prev_arrow'] = $is_prev ? filter_xss($js['prevArrow'], $allowed_tags) : $default_prev;
-  $settings['next_arrow'] = $is_next ? filter_xss($js['nextArrow'], $allowed_tags) : $default_next;
-
-  // Provide skins classes for arrows and dots, if so configured.
-  // The skin options may be provided using hook_slick_arrows_info() and
-  // hook_slick_dots_info() like hook_slick_skins_info().
-  $arrow_attributes = array('class' => array('slick__arrow'));
-  if ($settings['skin_arrows']) {
-    $skin_arrows = drupal_clean_css_identifier($settings['skin_arrows']);
-    $arrow_attributes['class'][] = 'slick__arrow--' . $skin_arrows;
-  }
-
-  // Provides helper class if thumbnail on dots hover provided.
-  if ($settings['thumbnail_style'] && $settings['thumbnail_hover']) {
-    // A problematic block element, or modifier since dotsClass is alterable.
-    $js['dotsClass'] .= ' slick-dots--thumbnail';
-  }
-
-  // Provides dots skin modifier class if provided.
-  if ($settings['skin_dots']) {
-    $js['dotsClass'] .= ' ' . drupal_clean_css_identifier('slick-dots--' . $settings['skin_dots']);
-  }
-
-  // Adds the mousewheel if so configured.
-  if ($settings['mousewheel']) {
-    $js['mousewheel'] = TRUE;
-  }
-
-  // Add the configuration as JSON object into the slick container using HTML5
-  // data attributes. This is much more efficient than regular JS settings loop
-  // which stuffs horrible bunch of JS settings for slide instances into the
-  // <head>. This prevents possible collision and ID leak with multiple slicks.
-  if ($count > 1 && !isset($content_attributes['data-config'])) {
-    // Use hook_slick_remove_options_info_alter() to manipulate the values prior
-    // to being printed into data-config attributes.
-    $js_data = _slick_remove_default_optionset_options($optionset, $js, $settings);
-
-    // Remove empty lazyLoad, or left to default ondemand, to avoid JS error.
-    if (empty($js_data['lazyLoad'])) {
-      unset($js_data['lazyLoad']);
+    if (!empty($goodies['random'])) {
+      $attributes['class'][] = 'slick--random';
     }
 
-    // Do not pass arrows HTML to JSON object, as we process separately above.
-    unset($js_data['prevArrow'], $js_data['nextArrow']);
-    $content_attributes['data-config'] = drupal_json_encode($js_data);
+    if (isset($settings['content_attributes']) && is_array($settings['content_attributes'])) {
+      $content_attributes = drupal_array_merge_deep($content_attributes, $settings['content_attributes']);
+    }
+    if (!isset($content_attributes['id'])) {
+      $content_attributes['id'] = $attributes['id'] . '-slider';
+    }
+    $content_attributes['class'][] = 'slick__slider';
+
+    // The slider must have the attribute "dir" set to "rtl", if so configured.
+    if (!empty($js['rtl'])) {
+      $content_attributes['dir'] = 'rtl';
+    }
+
+    // Arrows are enforced to allow responsive options hide/show them.
+    $tags = array('a', 'em', 'strong', 'button', 'p', 'div', 'i', 'span');
+    $settings['prev_arrow']      = filter_xss($js['prevArrow'], $tags);
+    $settings['next_arrow']      = filter_xss($js['nextArrow'], $tags);
+    $arrow_attributes            = &$variables['arrow_attributes_array'];
+    $arrow_attributes['class'][] = 'slick__arrow';
+    if (!empty($settings['skin_arrows'])) {
+      $skin_arrows = drupal_clean_css_identifier($settings['skin_arrows']);
+      $arrow_attributes['class'][] = 'slick__arrow--' . $skin_arrows;
+    }
+
+    // Adds helper class if thumbnail on dots hover provided.
+    if (!empty($settings['thumbnail_style']) && !empty($settings['thumbnail_hover'])) {
+      $js['dotsClass'] .= ' slick-dots--thumbnail';
+    }
+
+    // Adds dots skin modifier class if provided.
+    if (!empty($settings['skin_dots'])) {
+      $js['dotsClass'] .= ' ' . drupal_clean_css_identifier('slick-dots--' . $settings['skin_dots']);
+    }
+
+    // All these s***s are to re-use one optionset when all these disabled.
+    // focusOnSelect will not work with empty slide value, so add proper selector.
+    $js['slide'] = empty($js['slide']) && $js['focusOnSelect'] ? '.slick__slide' : '';
+
+    // Only if asNavFor, enforce clickable thumbnail, otherwise no joy.
+    if (!empty($settings['optionset_thumbnail']) && !empty($settings['asnavfor_target'])) {
+      if ($settings['current_display'] == 'thumbnail') {
+        $js['slide'] = '.slick__slide';
+        $js['focusOnSelect'] = TRUE;
+      }
+
+      $attributes['class'][] = 'slick--display--' . $settings['current_display'];
+      $js['asNavFor'] = trim($settings['asnavfor_target']);
+    }
+    // Prevents non-empty, but not-used, asNavFor from breaking the slide.
+    else {
+      $js['asNavFor'] = '';
+    }
+
+    if ($settings['current_display'] == 'main') {
+      if (!empty($goodies['arrow-down']) && $general['arrow_down_target']) {
+        $attributes['class'][]     = 'slick--has-arrow-down';
+        $arrow_down['class']       = array('slick-down', 'jump-scroll');
+        $arrow_down['data-target'] = $general['arrow_down_target'];
+        $arrow_down['data-offset'] = $general['arrow_down_offset'];
+        $variables['arrow_down']   = '<button' . drupal_attributes($arrow_down) . '></button>';
+      }
+    }
+
+    // Provides s*** classes. Set 'slick_classes' to FALSE to disable them.
+    if ($settings['slick_classes']) {
+      $attributes['class'][] = $js['slidesToShow'] > 1 ? 'slick--carousel' : 'slick--slider';
+      $attributes['class'][] = $js['centerMode'] ? 'slick--center' : 'slick--float';
+
+      // Provide context to fix excessive height with lazyLoad ondemand.
+      if ($js['lazyLoad'] == 'ondemand') {
+        $attributes['class'][] = 'slick--ondemand';
+      }
+    }
+
+    // Add the configuration as JSON object into the slick container.
+    $js_data = _slick_remove_default_optionset_options($optionset, $js, $settings);
+    if (!isset($content_attributes['data-slick']) && $js_data) {
+      $content_attributes['data-slick'] = drupal_json_encode($js_data);
+    }
   }
+
+  $variables['settings'] = $settings;
 
   // Process individual item.
-  $build = array();
-  foreach ($items as $delta => $item) {
+  $variables['items'] = array();
+  foreach ($element['#items'] as $delta => $item) {
     $settings['current_item'] = $settings['current_display'];
-
-    $build[$delta] = array(
-      '#theme' => 'slick_item',
-      '#item' => isset($item['slide']) ? $item['slide'] : $item,
-      '#delta' => $delta,
+    if (isset($item['settings'])) {
+      $settings = array_merge($settings, $item['settings']);
+    }
+    $variables['items'][$delta] = array(
+      '#theme'    => 'slick_item',
+      '#item'     => isset($item['slide']) ? $item['slide'] : $item,
+      '#delta'    => $delta,
       '#settings' => $settings,
-      '#caption' => isset($item['caption']) ? $item['caption'] : array(),
+      '#caption'  => isset($item['caption']) ? $item['caption'] : array(),
     );
   }
 
-  // Add the wrapper attributes.
-  $variables['attributes_array'] = $attributes;
-  $variables['content_attributes_array'] = $content_attributes;
-  $variables['arrow_attributes_array'] = $arrow_attributes;
-  $variables['items'] = $build;
-  $variables['settings'] = $settings;
-
-  // Populate classes_array expected by Omega 3.
   $variables['classes_array'] = $variables['attributes_array']['class'];
-
-  // Add the basic library if no sub-modules, nor #attached in use.
-  if ($count > 1 && !isset($element['#attached']) && ($settings['current_display'] == 'main')) {
-    slick_add();
-  }
 }
 
 /**
@@ -282,7 +230,6 @@ function template_preprocess_slick(&$variables) {
  */
 function template_process_slick(&$variables) {
   $variables['attributes'] = empty($variables['attributes_array']) ? '' : drupal_attributes($variables['attributes_array']);
-  $variables['content_attributes'] = empty($variables['content_attributes_array']) ? '' : drupal_attributes($variables['content_attributes_array']);
   $variables['arrow_attributes'] = empty($variables['arrow_attributes_array']) ? '' : drupal_attributes($variables['arrow_attributes_array']);
 }
 
@@ -291,308 +238,228 @@ function template_process_slick(&$variables) {
  */
 function template_preprocess_slick_item(&$variables) {
   $element  = $variables['element'];
-  $item     = $element['#item'];
-  $count    = count($element['#settings']['count']);
-
-  // Re-merge defaults since #settings may be inherited from main, or grid.
-  $defaults = slick_get_element_default_settings($count);
-  $settings = isset($element['#settings']) ? array_merge($defaults, $element['#settings']) : $defaults;
-  // $item is not always an array such as from views. This may results in
-  // unexpected "&lt;" for custom classes below when checking $item_settings.
-  $item_settings = is_array($item) && isset($item['#settings']) ? $item['#settings'] : $settings;
+  $item     = $variables['item'] = $element['#item'];
+  $settings = $element['#settings'];
   $captions = $element['#caption'];
 
-  $variables['item'] = $item;
-  $variables['item_prefix'] = array();
-  $variables['item_suffix'] = array();
-
-  // Remove non-BEM default class.
-  $variables['classes_array'] = array_diff($variables['classes_array'], array('slick-item'));
+  // Prepare variables, and remove non-BEM default class.
+  $variables['classes_array']  = array_diff($variables['classes_array'], array('slick-item'));
+  $variables['wrapper_prefix'] = $variables['wrapper_suffix'] = array();
+  $variables['content_prefix'] = $variables['content_suffix'] = array();
+  $variables['item_prefix']    = $variables['item_suffix'] = array();
 
   // Configure attributes for containing elements.
-  $attributes = $variables['attributes_array'];
+  $attributes          = $content_attributes = array();
   $attributes['class'] = $variables['classes_array'];
-
-  $variables['tag'] = $variables['content_tag'] = 'div';
+  $variables['tag']    = $variables['content_tag'] = 'div';
 
   if ($settings['current_item'] == 'grid') {
-    $one = 'slide__grid';
-    $two = 'grid';
-    $three = 'grid--' . $element['#delta'];
-    $variables['content_attributes_array']['class'][] = 'grid__content';
-
-    // Borrows Foundation block-grid so that reusable site wide.
-    // Override/empty skin Grid css when Foundation grid already in place, and
-    // block-grid classes are maintained.
-    // @see hook_slick_skins_info_alter(), or other ways to override CSS.
-    $variables['tag'] = 'li';
+    $one                      = !empty($settings['unslick']) ? 'slick__grid' : 'slide__grid';
+    $two                      = 'grid';
+    $three                    = 'grid--' . $element['#delta'];
+    $variables['tag']         = 'li';
     $variables['content_tag'] = 'div';
+    $content_attributes['class'][] = 'grid__content';
   }
   else {
-    $one = 'slick__slide';
-    $two = 'slide';
-    // Useful to add custom text color based on delta.
-    $three = 'slide--' . $element['#delta'];
-    $variables['content_attributes_array']['class'][] = 'slide__content';
+    $one              = 'slick__slide';
+    $two              = 'slide';
+    $three            = 'slide--' . $element['#delta'];
     $variables['tag'] = 'div';
+    $content_attributes['class'][] = 'slide__content';
+    // Thumbnail may not have settings as it just prints the image.
+    $settings = isset($item['#settings']) && is_array($item['#settings']) ? array_merge($settings, $item['#settings']) : $settings;
   }
 
   // 1, 2, 3, 1, 2, 3, drink.
-  $attributes['class'][] = $one;
-  $attributes['class'][] = $two;
-  $attributes['class'][] = $three;
+  $attributes['class'] += array($one, $two, $three);
 
-  // Only add relevant Foundation block-grid classes if the skin is Grid so that
-  // you can use own grid system, otherwise overrides at several levels.
-  if ($settings['grid'] && $settings['current_item'] == 'main') {
-    // Allows semantic grid.
-    if ($settings['skin'] == 'grid') {
-      if ($settings['grid_small']) {
-        $variables['content_attributes_array']['class'][] = 'small-block-grid-' . $settings['grid_small'];
+  // Only add relevant Foundation block-grid classes if the skin is Grid.
+  if (!empty($settings['grid']) && $settings['current_item'] == 'main') {
+    $settings['grid_large'] = $settings['grid'];
+    if (!empty($settings['skin']) && $settings['skin'] == 'grid') {
+      $grids = array('small', 'medium', 'large');
+      $content_attributes['class'][] = 'block-grid';
+      foreach ($grids as $grid) {
+        if ($settings['grid_' . $grid]) {
+          $content_attributes['class'][] = $grid . '-block-grid-' . $settings['grid_' . $grid];
+        }
       }
-      if ($settings['grid_medium']) {
-        $variables['content_attributes_array']['class'][] = 'medium-block-grid-' . $settings['grid_medium'];
-      }
-      $variables['content_attributes_array']['class'][] = 'large-block-grid-' . $settings['grid'];
     }
-
     $attributes['class'][] = 'slide--grid';
-
     $variables['content_tag'] = 'ul';
   }
 
-  // Main image/background. Media module has type: image, audio, video, etc.
-  // as opposed to field_type.
-  if ($settings['type']) {
+  // Media module has type: image, audio, video, as opposed to field_type.
+  if (!empty($settings['type']) && $settings['type'] != 'image') {
     $attributes['class'][] = drupal_clean_css_identifier('slide--' . $settings['type']);
   }
 
   // All slide types -- main, thumbnail, grid, overlay -- may have captions.
-  $variables['caption'] = array();
-  $variables['editor'] = array();
+  $variables['caption'] = $variables['editor'] = array();
   $variables['slide_pattern'] = '';
 
   // Title, caption and overlay, or nested media.
-  // Most sanitizations here must be handled by implementors since they may be
-  // renderable array.
-  $stage = array();
-
   if ($settings['current_item'] == 'thumbnail') {
-    // Thumbnail caption.
-    // Implementor is responsible to sanitize the output.
-    if (isset($captions['data']) && !empty($captions['data'])) {
-      $stage['data'] = $captions['data'];
-    }
+    $variables['caption'] = empty($captions['data']) ? array() : $captions['data'];
   }
   else {
-    // Add layout/ caption position classes if so configured.
-    if (!empty($captions['layout'])) {
-      $layout = drupal_clean_css_identifier('slide--caption--' . $captions['layout']);
-      $attributes['class'][] = $layout;
+    // Each slide can have unique, or uniform layout.
+    if (!empty($settings['layout'])) {
+      $attributes['class'][] = drupal_clean_css_identifier('slide--caption--' . $settings['layout']);
     }
 
-    // Overlay image/ video.
-    if (!empty($captions['overlay'])) {
-      $stage['overlay'] = $captions['overlay'];
+    // Captions contain: editor, overlay, title, alt, data, link.
+    if (!empty($captions['editor'])) {
+      if (empty($settings['cache'])) {
+        $variables['editor'] = $captions['editor'];
+      }
+      unset($captions['editor']);
     }
+    $variables['caption'] = $captions;
 
-    // Title.
-    // Implementor is responsible to sanitize the output.
-    if (!empty($captions['title'])) {
-      $stage['title'] = $captions['title'];
-    }
-
-    // Core image alt as description.
-    // Implementor is responsible to sanitize the output.
-    if (!empty($captions['alt'])) {
-      $stage['alt'] = $captions['alt'];
-    }
-
-    // Captions, can be multiple fields, useful for custom markups, or nested
-    // slick if possible at all.
-    // Implementor is responsible to sanitize the output.
-    if (!empty($captions['data'])) {
-      $stage['data'] = $captions['data'];
-    }
-
-    // Link/ buttons.
-    // Implementor is responsible to sanitize the output.
-    if (!empty($captions['link'])) {
-      $stage['link'] = $captions['link'];
-    }
-
-    // Editor links.
-    // Implementors should do the access check properly, e.g.:
-    // Translate file @title, Edit file @title.
-    // @see _slick_fields_format_media()
-    if (isset($captions['editor']) && !empty($captions['editor'])) {
-      $variables['editor'] = $captions['editor'];
-    }
-
-    // We split image from captions with a wrapper if we do have captions, and
-    // main image. This allows more complex slide layout.
-    if (($stage && $item) || (strpos($settings['skin'], '3d') !== FALSE)) {
+    // Split image from captions if we do have captions, and main image.
+    if (($variables['caption'] && $item) || (!empty($settings['skin']) && strpos($settings['skin'], '3d') !== FALSE)) {
       $variables['item_prefix'] = '<div class="slide__media">';
       $variables['item_suffix'] = '</div>';
     }
 
-    // If fullwidth or fullscreen, add additional wrappers to hold caption and
-    // overlay properly within the max-width containner.
-    if (strpos($settings['skin'], 'full') !== FALSE) {
+    // If fullwidth or fullscreen, add wrappers to hold caption and overlay.
+    if (!empty($settings['skin']) && strpos($settings['skin'], 'full') !== FALSE) {
       $variables['title_prefix'] = '<div class="slide__constrained">';
       $variables['title_suffix'] = '</div>';
     }
 
     // Exclude lightbox switcher as it has its own pattern DIV within A tag.
-    // @see theme_slick_image_lazy().
-    if ($settings['has_pattern'] && strpos($settings['media_switch'], 'box') === FALSE) {
+    if (!empty($settings['has_pattern']) && strpos($settings['media_switch'], 'box') === FALSE) {
       $variables['slide_pattern'] = '<div class="slide__pattern"></div>';
     }
   }
 
-  // Pass the captions to template.
-  $variables['caption'] = $stage;
-
   // Custom individual slide classes.
-  if (isset($item_settings['classes']) && $item_settings['classes']) {
-    $attributes['class'][] = strip_tags($item_settings['classes']);
+  if (!empty($settings['slide_classes'])) {
+    $attributes['class'][] = trim($settings['slide_classes']);
+  }
+
+  // Do not add divities for a single slick (unslick) to have clean markups.
+  if ($settings['count'] > 1) {
+    $variables['wrapper_prefix'] = '<' . $variables['tag'] . drupal_attributes($attributes) . '>';
+    $variables['wrapper_suffix'] = '</' . $variables['tag'] . '>';
+    $variables['content_prefix'] = '<' . $variables['content_tag'] . drupal_attributes($content_attributes) . '>';
+    $variables['content_suffix'] = '</' . $variables['content_tag'] . '>';
+  }
+
+  // Removes useless .slick__slide DIV if it is an enforced unslick grid.
+  if ($settings['current_item'] == 'main' && $variables['content_tag'] == 'ul' && !empty($settings['unslick'])) {
+    $variables['wrapper_prefix'] = $variables['wrapper_suffix'] = array();
+    $variables['content_prefix'] = str_replace("slide__content", "slide", $variables['content_prefix']);
   }
 
   $variables['settings'] = $settings;
-  $variables['attributes_array'] = $attributes;
-
-  // Populate classes_array expected by Omega 3.
-  $variables['classes_array'] = $variables['attributes_array']['class'];
-}
-
-/**
- * Implements hook_process_slick_item().
- */
-function template_process_slick_item(&$variables) {
-  $variables['attributes'] = empty($variables['attributes_array']) ? '' : drupal_attributes($variables['attributes_array']);
 }
 
 /**
  * Implements hook_preprocess_slick_grid().
  */
 function template_preprocess_slick_grid(&$variables) {
-  $element = $variables['element'];
+  $element  = $variables['element'];
   $settings = $element['#settings'];
-
-  $build = array();
+  $variables['wrapper_prefix'] = $variables['wrapper_suffix'] = array();
 
   // Implementors should be responsible to pass proper grid chunks.
+  $variables['items'] = array();
   foreach ($element['#items'] as $delta => $item) {
     $settings['current_item'] = 'grid';
+    if (isset($item['settings'])) {
+      $settings = array_merge($settings, $item['settings']);
+    }
 
-    $build[$delta] = array(
-      '#theme' => 'slick_item',
-      '#item' => isset($item['slide']) ? $item['slide'] : '',
-      '#delta' => $delta,
+    $variables['items'][$delta] = array(
+      '#theme'    => 'slick_item',
+      '#item'     => isset($item['slide']) ? $item['slide'] : '',
+      '#delta'    => $delta,
       '#settings' => $settings,
-      '#caption' => isset($item['caption']) ? $item['caption'] : array(),
+      '#caption'  => isset($item['caption']) ? $item['caption'] : array(),
     );
   }
-
-  $variables['items'] = $build;
 }
 
 /**
  * Implements hook_preprocess_slick_media().
  */
 function template_preprocess_slick_media(&$variables) {
-  $element = $variables['element'];
+  $element  = $variables['element'];
   $settings = $element['#settings'];
-  $variables['item'] = $element['#item'];
-  // Views has no support for #asnavfor since it has no raw to work with yet.
-  $variables['asnavfor'] = isset($element['#asnavfor']) ? $element['#asnavfor'] : 'main';
+  $item     = $variables['item'] = $element['#item'];
+  $media    = isset($item['#item']) ? $item['#item'] : $settings;
+  $type     = isset($settings['type']) ? $settings['type'] : 'image';
+  $switcher = $settings['media_switch'] = isset($settings['media_switch']) ? $settings['media_switch'] : FALSE;
 
-  $type = isset($settings['type']) ? $settings['type'] : 'image';
-
-  $variables['item_prefix'] = array();
-  $variables['item_suffix'] = array();
+  // Prepare variables.
+  // $variables['classes_array'] = array_diff($variables['classes_array'], array('slick-media'));
+  $variables['item_prefix'] = $variables['item_suffix'] = array();
+  $variables['is_lightbox'] = $switcher && strpos($switcher, 'box') !== FALSE;
+  $settings['is_media']     = isset($settings['is_media']) && $switcher != 'content' ? $settings['is_media'] : FALSE;
+  $variables['alternative_content'] = '';
 
   // Configure attributes for containing elements.
-  $attributes = $variables['attributes_array'];
-  $attributes['class'] = $variables['classes_array'];
+  $attributes            = &$variables['attributes_array'];
+  $content_attributes    = &$variables['content_attributes_array'];
+  $attributes['class']   = $variables['classes_array'];
   $attributes['class'][] = 'media';
+  $attributes['class'][] = 'media--' . $type;
 
-  $variables['url'] = '';
-  $variables['alternative_content'] = '';
-  $variables['is_lightbox'] = FALSE;
+  if (isset($settings['content_attributes']) && is_array($settings['content_attributes'])) {
+    $content_attributes = drupal_array_merge_deep($content_attributes, $settings['content_attributes']);
+  }
 
-  // Only reasonable for the main or grid display, not thumbnail navigation.
-  if ($variables['asnavfor'] != 'thumbnail') {
-
-    // Specific to Media integration.
-    $media = isset($element['#media']) ? $element['#media'] : '';
-
-    if ($media) {
-      // Cherry-pick useful references for settings and options.
-      $scheme = $settings['scheme'];
-      $settings['api_id_attribute'] = drupal_html_id('media-' . $scheme . '-' . $settings['media_id']);
-
-      // Soundcloud has no #options.
-      if (isset($media['#options'])) {
-        if (($scheme == 'youtube' && $media['#options']['enablejsapi']) || ($scheme == 'vimeo' && $media['#options']['api'])) {
-          $variables['content_attributes_array']['id'] = $settings['api_id_attribute'];
-        }
-      }
-
-      $variables['id'] = $settings['media_fid'];
-
-      // Iframe attributes.
-      $variables['content_attributes_array']['class'][] = 'media__iframe';
-      $variables['content_attributes_array']['height'] = $settings['media_height'];
-      $variables['content_attributes_array']['width'] = $settings['media_width'];
-
-      // Non-JS fallback.
-      // The media URL contains all the params extracted from the iframe SRC.
-      if ($settings['url']) {
-        $variables['url'] = $settings['url'];
-        $variables['content_attributes_array']['src'] = $variables['url'];
-      }
-
-      // If iframe switch disabled, fallback to just iframe, and remove image
-      // overlay.
-      if (empty($settings['media_switch'])) {
-        $variables['item'] = '';
-      }
-      else {
-        $attributes['class'][] = 'media--switch';
-
-        // If no colorbox, it is an image to iframe switcher.
-        if (strpos($settings['media_switch'], 'box') === FALSE) {
-          $attributes['class'][] = 'media--player';
-          $attributes['class'][] = 'media--switch--player';
-          $attributes['class'][] = drupal_clean_css_identifier('media--' . $scheme . '-player');
-        }
-
-        // Gets consistent with colorbox to share JS manipulation.
-        $data_media = array('type' => $type);
-        $data_media['player'] = TRUE;
-        $data_media['scheme'] = $scheme;
-        // Add iframe attributes.
-        $variables['content_attributes_array']['data-media'] = drupal_json_encode($data_media);
-        $variables['content_attributes_array']['data-lazy'] = $variables['url'];
-      }
-      $variables['alternative_content'] = check_plain($settings['filename']);
-    }
-
+  // All media types: image/audio/video files.
+  if (!empty($switcher)) {
+    $attributes['class'][] = 'media--switch';
     // Lightbox switcher applies to all media types, including core image field.
-    if (strpos($settings['media_switch'], 'box') !== FALSE) {
-      $switcher = str_replace('-switch', '', $settings['media_switch']);
-      $attributes['class'][] = 'media--switch--' . $switcher;
-      $variables['is_lightbox'] = TRUE;
+    if ($variables['is_lightbox'] || $switcher == 'content') {
+      $switched = str_replace('-switch', '', $switcher);
+      $attributes['class'][] = 'media--switch--' . $switched;
     }
   }
 
-  $attributes['class'][] = 'media--' . $type;
+  // Pure CSS responsive iframes/images based on aspect ratio to get
+  // consistent display for a mix of image/audio/video at one slick.
+  if (!empty($settings['ratio'])) {
+    $attributes['class'][] = 'media--ratio--on';
+    $attributes['class'][] = drupal_clean_css_identifier('media--ratio--' . $settings['ratio']);
+  }
 
-  $variables['settings'] = $settings;
-  $variables['attributes_array'] = $attributes;
+  // The media audio/video files.
+  if ($settings['is_media'] && !empty($media['url'])) {
+    $content_attributes['class'][] = 'media__iframe';
+    $content_attributes['src'] = $media['url'];
 
-  // Populate classes_array expected by Omega 3.
+    // If iframe switch disabled, fallback to just iframe, and remove overlay.
+    if (empty($switcher)) {
+      $variables['item'] = array();
+    }
+    else {
+      // If no colorbox/photobox, it is an image to iframe switcher.
+      if (!$variables['is_lightbox']) {
+        $attributes['class'][] = 'media--player';
+        $attributes['class'][] = 'media--switch--player';
+        $attributes['class'][] = drupal_clean_css_identifier('media--' . $media['scheme'] . '-player');
+      }
+
+      // Gets consistent with colorbox to share JS manipulation.
+      $json = array(
+        'type'   => $type,
+        'player' => TRUE,
+        'scheme' => $media['scheme'],
+      );
+      $content_attributes['data-media'] = drupal_json_encode($json);
+      $content_attributes['data-lazy']  = $media['url'];
+    }
+    $variables['alternative_content'] = empty($media['title']) ? '' : filter_xss($media['title']);
+  }
+
+  $variables['settings']      = $settings;
   $variables['classes_array'] = $variables['attributes_array']['class'];
 }
 
@@ -604,223 +471,209 @@ function template_process_slick_media(&$variables) {
 }
 
 /**
- * Implements hook_preprocess_slick_wrapper().
- *
- * @see theme_slick_wrapper()
- */
-function template_preprocess_slick_wrapper(&$variables) {
-  $element = $variables['element'];
-  $settings = $element['#settings'] ? $element['#settings'] : array();
-
-  $variables['items'] = array();
-  foreach ($element['#items'] as $delta => $item) {
-    if (!empty($item)) {
-      $variables['items'][$delta] = $item;
-    }
-  }
-
-  $variables['attributes_array'] = array('class' => array('slick-wrapper'));
-
-  if (isset($settings['skin']) && $settings['skin'] && $settings['skin'] != 'asnavfor') {
-    $variables['attributes_array']['class'][] = drupal_clean_css_identifier('slick-wrapper--' . $settings['skin']);
-  }
-
-  if (isset($settings['asnavfor_thumbnail']) && $settings['asnavfor_thumbnail']) {
-    $variables['attributes_array']['class'][] = 'slick-wrapper--asnavfor';
-  }
-
-  // Populate classes_array expected by Omega 3.
-  $variables['classes_array'] = $variables['attributes_array']['class'];
-}
-
-/**
- * Implements hook_process_slick_wrapper().
- */
-function template_process_slick_wrapper(&$variables) {
-  $variables['attributes'] = empty($variables['attributes_array']) ? '' : drupal_attributes($variables['attributes_array']);
-}
-
-/**
- * Returns HTML for a slick_wrapper.
- *
- * @param array $variables
- *   An associative array containing:
- *   - items: An array of slick instances: main and thumbnail slicks.
- *   - classes: A string containing the classes for the wrapping div.
- *   - attributes: A string containing the attributes for the wrapping div.
- *
- * @see template_preprocess_slick_wrapper()
- * @see template_process_slick_wrapper()
- *
- * @ingroup themeable
- */
-function theme_slick_wrapper(array $variables) {
-  $build = '';
-
-  // Render the items.
-  foreach ($variables['items'] as $item) {
-    $build .= drupal_render($item);
-  }
-
-  // Render the top-level DIV.
-  $build = '<div' . $variables['attributes'] . '>' . $build . '</div>';
-
-  return $build;
-}
-
-/**
- * Overrides theme_image with lazy loading.
- *
- * Notes:
- * The issue here is no longer valid with the latest Slick. However if the issue
- * persists at your end, please try two possible fixes below.
- *
- * v1.3.7 allows dummy/ placeholder image:
- * https://github.com/kenwheeler/slick/pull/223
- * However lazyLoad ondemand has issue failing to generate _newly created image
- * derivatives, causing 403. It has no issue if derivatives are in place
- * already. Only _new images fail. lazyLoad progressive has no issue with it.
- *
- * May relate to itok: https://www.drupal.org/drupal-7.20-release-notes
- * Possible fixes without compromising security:
- *   - https://www.drupal.org/project/imageinfo_cache, to have derivatives
- *     in place earlier.
- *   - Or use lazyLoad "progressive" instead.
- *
- * ondemand also has issue with dummy image excessive height, so use it
- * with care. Dummy image is for valid HTML5.
- *
- * @ingroup themeable
- */
-function theme_slick_image_lazy($variables) {
-  $build = '';
-
-  $path = $variables['path'];
-  $variables['attributes']['class'][] = 'slick__image';
-
-  // Be sure to avoid images with breakpoints and without image style.
-  if (!isset($variables['breakpoints']) && isset($variables['style_name'])) {
-    $attributes = $variables['attributes'];
-    foreach (array('width', 'height', 'alt', 'title') as $key) {
-      if (isset($variables[$key])) {
-        // Backported https://www.drupal.org/node/999338.
-        // If the property has already been defined in the attributes,
-        // do not override, including NULL.
-        if (array_key_exists($key, $attributes)) {
-          continue;
-        }
-        $attributes[$key] = $variables[$key];
-      }
-    }
-
-    $variables['path'] = image_style_url($variables['style_name'], $path);
-    $count = $variables['count'];
-    $path = file_create_url($variables['path']);
-
-    // Provide SRC attribute if a single image, or lazyLoad disabled.
-    if ($count == 1 || !$variables['lazy']) {
-      $attributes['src'] = $path;
-    }
-    else {
-      $attributes['class'][] = 'lazy';
-
-      // This is why we have this function, D7 core theme_image() only expects
-      // a file, not inline image. Dropped at D8 that supports it, and merged to
-      // theme_slick_image_formatter_lazy() instead, or vice versa.
-      // @see https://www.drupal.org/node/1342504
-      $attributes['src'] = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-      $attributes['data-lazy'] = $path;
-    }
-
-    $build .= '<img ' . drupal_attributes($attributes) . ' />';
-
-    // Only provide noscript to the first image, since the rest of the slides
-    // always want JS with all this lazyLoad.
-    if ($count > 1 && $variables['delta'] == 0) {
-      $build .= '<noscript>' . theme('image', $variables) . '</noscript>';
-    }
-  }
-  else {
-    $build = theme('image', $variables);
-  }
-
-  return $build;
-}
-
-/**
- * Returns HTML for an image field formatter using lazyLoad technique.
+ * Overrides theme_image with Slick lazy loading.
  *
  * @param array $variables
  *   An associative array containing:
  *   - item: Associative array of image data, which may include "uri", "alt",
  *     "width", "height", "title" and "attributes".
- *   - image_style: An optional image style.
- *   - path: An array containing the link 'path' and link 'options'.
+ *   - lazy: A flag whether to use the lazyload, or not.
+ *   - image_style: The name of the style to alter the original image.
+ *   - url: A string containing the link 'url'.
+ *   - attributes: Associative array of attributes to be placed in the img tag.
+ *   - options: An array of options, including the 'url' options.
  *
  * @ingroup themeable
  */
-function theme_slick_image_formatter_lazy(array $variables) {
-  $item = $variables['item'];
-  $output = '';
-  $image = array(
-    'path' => $item['uri'],
-  );
+function theme_slick_image_lazy(array $variables) {
+  $build      = '';
+  $image      = &$variables['item'];
+  $options    = $variables['options'];
+  $attributes = &$variables['attributes'];
 
-  if (isset($item['alt'])) {
-    $image['alt'] = check_plain($item['alt']);
+  if (isset($image['attributes']) && is_array($image['attributes'])) {
+    $attributes = drupal_array_merge_deep($attributes, $image['attributes']);
   }
 
-  if (isset($item['attributes'])) {
-    $image['attributes'] = $item['attributes'];
-  }
-
-  // Do not output an empty 'title' attribute.
-  if (isset($item['title']) && drupal_strlen($item['title']) > 0) {
-    $image['title'] = check_plain($item['title']);
-  }
+  $attributes['class'][] = 'slick__image';
+  $image['path'] = $image['uri'];
+  $image_url     = file_create_url($image['path']);
 
   if ($variables['image_style']) {
-    $image['style_name'] = $variables['image_style'];
-    $dimensions = array(
-      'width' => $item['width'],
-      'height' => $item['height'],
-    );
+    // If dimensions have not been defined before.
+    if (!isset($image['dimensions'])) {
+      $dimensions = array(
+        'width'  => $image['width'],
+        'height' => $image['height'],
+      );
 
-    image_style_transform_dimensions($image['style_name'], $dimensions);
+      image_style_transform_dimensions($variables['image_style'], $dimensions);
 
-    $image['width'] = $dimensions['width'];
-    $image['height'] = $dimensions['height'];
+      $image['width']  = $dimensions['width'];
+      $image['height'] = $dimensions['height'];
+    }
+    $image_url     = image_style_url($variables['image_style'], $image['uri']);
+    $image['path'] = $image_url;
   }
 
-  $image['delta'] = $variables['delta'];
-  $image['count'] = isset($variables['count']) ? $variables['count'] : 0;
+  $image_rendered = theme('image', $image);
 
-  // Optional lazyLoad only reasonable if we do have slides.
-  $image['lazy'] = FALSE;
-  if ($image['count'] > 1) {
-    $image['lazy'] = $variables['options']['lazy'];
-  }
-  $image['options']['type'] = $variables['options']['type'];
-
-  $output = theme('slick_image_lazy', $image);
-
-  // The link path and link options are both optional, but for the options to be
-  // processed, the link path must at least be an empty string.
-  if (isset($variables['path']['path'])) {
-    if (isset($variables['options']['lightbox']) && $variables['options']['lightbox']) {
-      $switcher = $variables['options']['lightbox'];
-      $output .= '<i class="media-icon media-icon--lightbox media-icon--' . $switcher . '"></i>';
-      if ($variables['options']['has_pattern']) {
-        $output .= '<div class="slide__pattern"></div>';
+  // Be sure to avoid images with breakpoints, taken over by picture.module.
+  if (!isset($variables['breakpoints']) && $options['count'] > 1 && $variables['lazy']) {
+    foreach (array('width', 'height', 'alt', 'title') as $key) {
+      if (isset($image[$key])) {
+        // If the property has already been defined in the attributes,
+        // do not override, including NULL.
+        if (array_key_exists($key, $attributes)) {
+          continue;
+        }
+        $attributes[$key] = $image[$key];
       }
     }
 
-    $path = $variables['path']['path'];
-    $options = isset($variables['path']['options']) ? $variables['path']['options'] : array();
-    // When displaying an image inside a link, the html option must be TRUE.
-    $options['html'] = TRUE;
-    $output = l($output, $path, $options);
+    $attributes['class'][] = 'lazy';
+    $attributes['src'] = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+    // Use 'advanced' to DIY with: blazy, responsimg, lazysizes, etc.
+    if ($variables['lazy'] != 'advanced') {
+      $attributes['data-lazy'] = $image_url;
+    }
+
+    $build .= '<img' . drupal_attributes($attributes) . ' />';
+    if ($options['delta'] == 0) {
+      $build .= theme('html_tag', array(
+        'element' => array(
+          '#tag' => 'noscript',
+          '#value' => $image_rendered,
+        ),
+      ));
+    }
+  }
+  else {
+    $build = $image_rendered;
   }
 
-  return $output;
+  // The link url and link options are both optional.
+  if (isset($variables['url'])) {
+    if (isset($options['lightbox']) && $switcher = $options['lightbox']) {
+      $build .= empty($options['icon']) ? '<i class="media-icon media-icon--lightbox media-icon--' . $switcher . '"></i>' : $options['icon'];
+      if (!empty($options['has_pattern'])) {
+        $build .= '<div class="slide__pattern"></div>';
+      }
+    }
+
+    $url = $variables['url'];
+    $options = isset($variables['options']['url']) ? (array) $variables['options']['url'] : array();
+    $options['html'] = TRUE;
+    $build = l($build, $url, $options);
+  }
+  return $build;
+}
+
+/**
+ * Returns HTML or layout related settings to avoid extra checks and notices.
+ *
+ * @return array
+ *   An array of alterable default theme settings.
+ */
+function slick_get_element_default_settings() {
+  $settings = array(
+    'current_display' => 'main',
+    'has_pattern'     => FALSE,
+    'media_switch'    => '',
+    'optionset'       => 'default',
+    'skin'            => '',
+    'slick_classes'   => TRUE,
+  );
+  drupal_alter('slick_element_default_settings_info', $settings);
+  return $settings;
+}
+
+/**
+ * Strips out options similar to default values from the optionset options.
+ *
+ * @param object $optionset
+ *   The Optionset object.
+ * @param array $settings
+ *   An array of handed-over JS options manipulated at theme_slick().
+ * @param array $context
+ *   The context to check for before doing alteration, such as module settings.
+ *
+ * @return array
+ *   An array of reduced duplicated options since JS will fallback to defaults.
+ */
+function _slick_remove_default_optionset_options($optionset, $settings = array(), $context = array()) {
+  $config   = array();
+  $options  = $optionset->options;
+  $defaults = slick_get_options();
+
+  // Remove wasted dependent options if disabled, empty or not.
+  slick_remove_wasted_dependent_options($settings);
+  $config = array_diff_assoc($settings, $defaults);
+
+  if (empty($config['lazyLoad'])) {
+    unset($config['lazyLoad']);
+  }
+  unset($config['prevArrow'], $config['nextArrow']);
+
+  // Clean up responsive options if similar to the main defaults.
+  $responses = array();
+  if (isset($options['responsives']) && isset($options['responsives']['responsive'])) {
+    $responsives = $options['responsives']['responsive'];
+    foreach ($responsives as $key => $responsive) {
+      if (empty($responsives[$key]['breakpoint'])) {
+        unset($responsives[$key]);
+      }
+      if (isset($responsives[$key])) {
+        $responses[$key] = $responsive;
+      }
+    }
+    if ($responses) {
+      $cleaned = array();
+      foreach ($responses as $i => $response) {
+        $cleaned[$i]['breakpoint'] = $responses[$i]['breakpoint'];
+        if (isset($responses[$i]['unslick']) && $responses[$i]['unslick']) {
+          $cleaned[$i]['settings'] = 'unslick';
+          unset($responses[$i]['unslick']);
+        }
+        else {
+          slick_remove_wasted_dependent_options($responses[$i]['settings']);
+          $cleaned[$i]['settings'] = array_diff_assoc($responses[$i]['settings'], $defaults);
+        }
+      }
+      $config['responsive'] = $cleaned;
+    }
+  }
+  drupal_alter('slick_remove_options_info', $config, $settings, $options, $context);
+  return $config;
+}
+
+/**
+ * Removes wasted dependent options, even if not empty.
+ *
+ * @param array $config
+ *   An array of Optionset options.
+ */
+function slick_remove_wasted_dependent_options(array &$config) {
+  $options = array(
+    'autoplay'   => array('pauseOnHover', 'pauseOnDotsHover', 'autoplaySpeed'),
+    'centerMode' => array('centerPadding'),
+    'dots'       => array('dotsClass', 'appendDots'),
+    'swipe'      => array('swipeToSlide'),
+    'vertical'   => array('verticalSwiping'),
+    'useCSS'     => array('cssEase', 'cssEaseBezier', 'cssEaseOverride'),
+  );
+
+  foreach ($options as $key => $option) {
+    if (isset($config[$key]) && empty($config[$key])) {
+      foreach ($option as $dependent) {
+        unset($config[$dependent]);
+      }
+    }
+  }
+
+  if ($config['useCSS'] && isset($config['cssEaseBezier']) && $config['cssEaseBezier']) {
+    $config['cssEase'] = $config['cssEaseBezier'];
+    unset($config['cssEaseOverride'], $config['cssEaseBezier']);
+  }
 }

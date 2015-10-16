@@ -39,7 +39,7 @@ class SlickTestCase extends DrupalWebTestCase {
    * Overrides DrupalWebTestCase::setUp.
    */
   public function setUp() {
-    parent::setUp('libraries', 'ctools', 'jquery_update', 'slick');
+    parent::setUp('libraries', 'ctools', 'jquery_update', 'slick', 'slick_ui');
 
     // Create users.
     $this->adminUser = $this->drupalCreateUser(array('administer slick'));
@@ -261,8 +261,9 @@ class SlickTestCase extends DrupalWebTestCase {
    */
   public function getOptions() {
     // Valid optionset data.
+    $defaults = slick_get_options();
     $valid = array(
-      'set1' => _slick_optionset_defaults('settings'),
+      'set1' => $defaults,
       'set2' => array(
         'autoplay' => TRUE,
         'initialSlide' => 1,
