@@ -587,4 +587,7 @@ if (!defined('PANTHEON_ENVIRONMENT')) {
     'port' => 3306,
     'prefix' => '',
   );
+  define('PANTHEON_ENVIRONMENT', 'dev');
 }
+
+require_once DRUPAL_ROOT . '/profiles/ace/settings/settings.' . PANTHEON_ENVIRONMENT . '.php';
