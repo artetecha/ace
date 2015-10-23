@@ -27,13 +27,17 @@ dependencies[] = rdf
 ; Contrib modules.
 dependencies[] = admin_views
 dependencies[] = adminimal_admin_menu
+dependencies[] = clean_markup_blocks
+dependencies[] = clean_markup_panels
 dependencies[] = date_popup_authored
 dependencies[] = entityreference
 dependencies[] = facetapi
 dependencies[] = features
+dependencies[] = fences
 dependencies[] = field_group
 dependencies[] = fieldable_panels_panes
 dependencies[] = file_entity
+dependencies[] = google_map_field
 dependencies[] = jquery_update
 dependencies[] = libraries
 dependencies[] = link

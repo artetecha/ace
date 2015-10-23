@@ -99,3 +99,16 @@ function ace_update_7302() {
   );
   module_enable($mods);
 }
+
+/**
+ * Enabled three more modules on the profile.
+ */
+function ace_update_7303() {
+  $mods = array(
+    'clean_markup_blocks',
+    'clean_markup_panels',
+    'fences',
+    'google_map_field',
+  );
+  module_enable($mods);
+}
