@@ -116,7 +116,7 @@ function ace_update_7303() {
 /**
  * Disable/Re-enable tablefield.
  */
-function ace_update_7303() {
+function ace_update_7304() {
   $mods = array(
     'tablefield',
   );
