@@ -124,3 +124,13 @@ function ace_update_7304() {
   drupal_uninstall_modules($mods);
   module_enable($mods);
 }
+
+/**
+ * Project CT feature.
+ */
+function ace_update_7305() {
+  $mods = array(
+    'ace_ct_project',
+  );
+  module_enable($mods);
+}

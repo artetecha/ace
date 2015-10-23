@@ -10,7 +10,7 @@
 function promotion_field_default_field_instances() {
   $field_instances = array();
 
-  // Exported field_instance: 'node-promotion-body'
+  // Exported field_instance: 'node-promotion-body'.
   $field_instances['node-promotion-body'] = array(
     'bundle' => 'promotion',
     'default_value' => NULL,
@@ -54,7 +54,7 @@ function promotion_field_default_field_instances() {
     ),
   );
 
-  // Exported field_instance: 'node-promotion-field_image'
+  // Exported field_instance: 'node-promotion-field_image'.
   $field_instances['node-promotion-field_image'] = array(
     'bundle' => 'promotion',
     'deleted' => 0,
