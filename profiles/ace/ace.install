@@ -112,3 +112,15 @@ function ace_update_7303() {
   );
   module_enable($mods);
 }
+
+/**
+ * Disable/Re-enable tablefield.
+ */
+function ace_update_7303() {
+  $mods = array(
+    'tablefield',
+  );
+  module_disable($mods);
+  drupal_uninstall_modules($mods);
+  module_enable($mods);
+}
