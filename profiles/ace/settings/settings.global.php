@@ -15,4 +15,7 @@ $conf['jquery_update_jquery_version'] = '1.7';
 $conf['jquery_update_jquery_admin_version'] = '1.7';
 $conf['jquery_update_compression_type'] = 'min';
 
-
+/**
+ * Views.
+ */
+$conf['views_ui_custom_theme'] = '_default';
