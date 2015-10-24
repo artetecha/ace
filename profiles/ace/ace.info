@@ -60,6 +60,7 @@ dependencies[] = redis
 dependencies[] = respondjs
 dependencies[] = revisioning
 dependencies[] = save_draft
+dependencies[] = search_api_solr
 dependencies[] = slick
 dependencies[] = strongarm
 dependencies[] = tablefield
@@ -69,9 +70,9 @@ dependencies[] = views
 dependencies[] = views_autocomplete_filters
 dependencies[] = views_bootstrap
 dependencies[] = views_bulk_operations
+dependencies[] = views_cache_bully
 dependencies[] = views_ui
 dependencies[] = wysiwyg
-dependencies[] = search_api_solr
 
 ; Patheon modules.
 dependencies[] = pantheon_api

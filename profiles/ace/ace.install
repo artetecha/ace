@@ -144,3 +144,13 @@ function ace_update_7306() {
   );
   module_enable($mods);
 }
+
+/**
+ * Enabled Views Cache Bully.
+ */
+function ace_update_7307() {
+  $mods = array(
+    'views_cache_bully',
+  );
+  module_enable($mods);
+}
