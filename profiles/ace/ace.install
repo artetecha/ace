@@ -134,3 +134,13 @@ function ace_update_7305() {
   );
   module_enable($mods);
 }
+
+/**
+ * Enabled Redis.
+ */
+function ace_update_7306() {
+  $mods = array(
+    'redis',
+  );
+  module_enable($mods);
+}
