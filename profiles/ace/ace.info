@@ -79,5 +79,6 @@ dependencies[] = pantheon_apachesolr
 dependencies[] = pantheon_login
 
 ; Features.
+dependencies[] = ace_ct_project
 
 files[] = ace.profile
